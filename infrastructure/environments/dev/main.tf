@@ -22,3 +22,15 @@ module "storage" {
 module "registries" {
   source = "../../modules/registries"
 }
+
+module "databases" {
+  source             = "../../modules/databases"
+  vpc_id             = module.networking.vpc_id
+  private_subnet_ids = module.networking.private_subnet_ids
+}
+
+module "compute" {
+  source            = "../../modules/compute"
+  vpc_id            = module.networking.vpc_id
+  public_subnet_ids = module.networking.public_subnet_ids
+}
