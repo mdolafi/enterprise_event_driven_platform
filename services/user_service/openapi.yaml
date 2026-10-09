@@ -1,0 +1,199 @@
+openapi: "3.0.3"
+$schema: "http://swagger.io/v2/schema.json#"
+info:
+  title: User Microservice API
+  description: Core User Management Service handling user profiles, lifecycle, and identity data.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local Development Server
+  - url: https://api.staging.yourdomain.com/users/v1
+    description: Staging Gateway
+
+paths:
+  /users:
+    post:
+      summary: Register a new user
+      operationId: createUser
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Validation error or invalid request payload
+        '409':
+          description: User email address already registered
+
+  /users/me:
+    get:
+      summary: Get current authenticated user profile
+      operationId: getMyProfile
+      tags:
+        - Profiles
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully fetched current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized / Invalid JWT token
+        '404':
+          description: User profile not found
+
+    put:
+      summary: Update current user profile
+      operationId: updateMyProfile
+      tags:
+        - Profiles
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+
+    delete:
+      summary: Soft delete / deactivate current account
+      operationId: deleteMyProfile
+      tags:
+        - Profiles
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Account successfully deactivated
+
+  /users/{user_id}:
+    get:
+      summary: Get user profile by user_id
+      operationId: getUserById
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: User not found
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    UserRoleEnum:
+      type: string
+      enum:
+        - Submitter
+        - Approver
+        - Admin
+      default: Submitter
+      description: Roles corresponding to PostgreSQL user_role_enum
+
+    UserCreate:
+      type: object
+      required:
+        - user_name
+        - user_email_address
+      properties:
+        user_name:
+          type: string
+          maxLength: 255
+          example: Jane Doe
+        user_email_address:
+          type: string
+          format: email
+          maxLength: 255
+          example: jane.doe@example.com
+        role:
+          $ref: '#/components/schemas/UserRoleEnum'
+
+    UserUpdate:
+      type: object
+      properties:
+        user_name:
+          type: string
+          maxLength: 255
+          example: Jane Smith
+        role:
+          $ref: '#/components/schemas/UserRoleEnum'
+        is_active:
+          type: boolean
+          example: true
+
+    UserResponse:
+      type: object
+      required:
+        - user_id
+        - user_name
+        - user_email_address
+        - role
+        - is_active
+        - created_at
+        - updated_at
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          example: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+        user_name:
+          type: string
+          example: Jane Doe
+        user_email_address:
+          type: string
+          format: email
+          example: jane.doe@example.com
+        role:
+          $ref: '#/components/schemas/UserRoleEnum'
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-09-27T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2026-09-27T10:00:00Z"

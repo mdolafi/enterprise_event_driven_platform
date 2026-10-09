@@ -1,0 +1,180 @@
+version: '3.8'
+
+services:
+  # --------------------------------------------------------
+  # Shared PostgreSQL Database
+  # --------------------------------------------------------
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: marad_ccb_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ccb_admin
+      POSTGRES_PASSWORD: ccb_password123
+      POSTGRES_DB: marad_ccb_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ccb_network
+
+  # --------------------------------------------------------
+  # 8 Domain Microservices
+  # --------------------------------------------------------
+  user_service:
+    build:
+      context: ./services/user_service
+      dockerfile: Dockerfile
+    container_name: ccb_user_service
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgres://ccb_admin:ccb_password123@postgres_db:5432/marad_ccb_db
+    depends_on:
+      - postgres_db
+    networks:
+      - ccb_network
+
+  submitter_service:
+    build:
+      context: ./services/submitter_service
+      dockerfile: Dockerfile
+    container_name: ccb_submitter_service
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      PORT: 8001
+      DATABASE_URL: postgres://ccb_admin:ccb_password123@postgres_db:5432/marad_ccb_db
+    depends_on:
+      - postgres_db
+    networks:
+      - ccb_network
+
+  voter_service:
+    build:
+      context: ./services/voter_service
+      dockerfile: Dockerfile
+    container_name: ccb_voter_service
+    restart: always
+    ports:
+      - "8002:8002"
+    environment:
+      PORT: 8002
+      DATABASE_URL: postgres://ccb_admin:ccb_password123@postgres_db:5432/marad_ccb_db
+    depends_on:
+      - postgres_db
+    networks:
+      - ccb_network
+
+  decision_maker_service:
+    build:
+      context: ./services/decision_maker_service
+      dockerfile: Dockerfile
+    container_name: ccb_decision_maker_service
+    restart: always
+    ports:
+      - "8003:8003"
+    environment:
+      PORT: 8003
+      DATABASE_URL: postgres://ccb_admin:ccb_password123@postgres_db:5432/marad_ccb_db
+    depends_on:
+      - postgres_db
+    networks:
+      - ccb_network
+
+  notification_service:
+    build:
+      context: ./services/notification_service
+      dockerfile: Dockerfile
+    container_name: ccb_notification_service
+    restart: always
+    ports:
+      - "8004:8004"
+    environment:
+      PORT: 8004
+      DATABASE_URL: postgres://ccb_admin:ccb_password123@postgres_db:5432/marad_ccb_db
+    depends_on:
+      - postgres_db
+    networks:
+      - ccb_network
+
+  investigation_service:
+    build:
+      context: ./services/investigation_service
+      dockerfile: Dockerfile
+    container_name: ccb_investigation_service
+    restart: always
+    ports:
+      - "8005:8005"
+    environment:
+      PORT: 8005
+      DATABASE_URL: postgres://ccb_admin:ccb_password123@postgres_db:5432/marad_ccb_db
+    depends_on:
+      - postgres_db
+    networks:
+      - ccb_network
+
+  attachment_service:
+    build:
+      context: ./services/attachment_service
+      dockerfile: Dockerfile
+    container_name: ccb_attachment_service
+    restart: always
+    ports:
+      - "8006:8006"
+    environment:
+      PORT: 8006
+      DATABASE_URL: postgres://ccb_admin:ccb_password123@postgres_db:5432/marad_ccb_db
+    depends_on:
+      - postgres_db
+    networks:
+      - ccb_network
+
+  event_store_service:
+    build:
+      context: ./services/event_store_service
+      dockerfile: Dockerfile
+    container_name: ccb_event_store_service
+    restart: always
+    ports:
+      - "8007:8007"
+    environment:
+      PORT: 8007
+      DATABASE_URL: postgres://ccb_admin:ccb_password123@postgres_db:5432/marad_ccb_db
+    depends_on:
+      - postgres_db
+    networks:
+      - ccb_network
+  # --------------------------------------------------------
+  # Central React Frontend Dashboard
+  # --------------------------------------------------------
+  frontend_dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ccb_frontend_dashboard
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - user_service
+      - submitter_service
+      - voter_service
+      - decision_maker_service
+      - notification_service
+      - investigation_service
+      - attachment_service
+      - event_store_service
+    networks:
+      - ccb_network
+networks:
+  ccb_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  
