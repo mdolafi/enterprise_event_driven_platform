@@ -1,0 +1,15 @@
+{
+    "validEvent": {
+        "event_type": "issue.ready_for_decision",
+        "aggregate_id": "ccb-2026-0042",
+        "source_service": "voter_service",
+        "payload": {
+            "quorum_reached": true,
+            "total_votes": 3,
+            "fast_track": false
+        }
+    },
+    "malformedEvent": {
+        "source_service": "voter_service"
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "validUser": {
+        "name": "Mohammed Dolafi",
+        "email": "mohammed.dolafi.ctr@dot.gov",
+        "role": "ADMIN"
+    },
+    "invalidEmailUser": {
+        "name": "Unauthorized User",
+        "email": "user@external-domain.com",
+        "role": "SUBMITTER"
+    },
+    "updateUser": {
+        "role": "INVESTIGATOR"
+    }
+}

@@ -2,17 +2,32 @@ const db = require('../config/db');
 
 // POST /api/v1/submitters
 exports.createSubmission = async (req, res) => {
-    const { submitter_name, title, description } = req.body;
     try {
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({ error: 'Request body is required' });
+        }
+
+        const { email, submitter_email, name, submitter_name, title, description, priority, system_affected } = req.body;
+        const targetEmail = email || submitter_email;
+
+        if (!targetEmail) {
+            return res.status(400).json({ error: 'Submitter email is required' });
+        }
+
+        if (!targetEmail.endsWith('@dot.gov')) {
+            return res.status(400).json({ error: 'Submitter email must belong to @dot.gov domain' });
+        }
+
         const result = await db.query(
-            `INSERT INTO submissions (submitter_name, title, description)
-       VALUES ($1, $2, $3)
-       RETURNING *`,
-            [submitter_name, title, description]
+            `INSERT INTO submitters (email, name, title, description, priority, system_affected)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, id AS submission_id, email, name, title, description, priority, system_affected`,
+            [targetEmail, name || submitter_name || 'Edward Kegan', title || '', description || '', priority || 'HIGH', system_affected || 'marad_ccb_db']
         );
-        res.status(201).json(result.rows[0]);
+
+        return res.status(201).json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ detail: error.message });
+        return res.status(500).json({ detail: error.message });
     }
 };
 
@@ -20,11 +35,14 @@ exports.createSubmission = async (req, res) => {
 exports.getSubmissionById = async (req, res) => {
     const { submission_id } = req.params;
     try {
-        const result = await db.query('SELECT * FROM submissions WHERE submission_id = $1', [submission_id]);
+        const result = await db.query(
+            'SELECT id, id AS submission_id, email, name, title, description, priority, system_affected FROM submitters WHERE id = $1',
+            [submission_id]
+        );
         if (result.rows.length === 0) return res.status(404).json({ detail: 'Submission not found' });
-        res.status(200).json(result.rows[0]);
+        return res.status(200).json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ detail: error.message });
+        return res.status(500).json({ detail: error.message });
     }
 };
 
@@ -34,18 +52,18 @@ exports.updateSubmission = async (req, res) => {
     const { title, description } = req.body;
     try {
         const result = await db.query(
-            `UPDATE submissions
-       SET title = COALESCE($1, title),
-           description = COALESCE($2, description),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE submission_id = $3
-       RETURNING *`,
+            `UPDATE submitters
+             SET title = COALESCE($1, title),
+                 description = COALESCE($2, description),
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $3
+             RETURNING id, *`,
             [title, description, submission_id]
         );
         if (result.rows.length === 0) return res.status(404).json({ detail: 'Submission not found' });
-        res.status(200).json(result.rows[0]);
+        return res.status(200).json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ detail: error.message });
+        return res.status(500).json({ detail: error.message });
     }
 };
 
@@ -53,10 +71,10 @@ exports.updateSubmission = async (req, res) => {
 exports.deleteSubmission = async (req, res) => {
     const { submission_id } = req.params;
     try {
-        const result = await db.query('DELETE FROM submissions WHERE submission_id = $1 RETURNING submission_id', [submission_id]);
+        const result = await db.query('DELETE FROM submitters WHERE id = $1 RETURNING id', [submission_id]);
         if (result.rows.length === 0) return res.status(404).json({ detail: 'Submission not found' });
-        res.status(204).send();
+        return res.status(204).send();
     } catch (error) {
-        res.status(500).json({ detail: error.message });
+        return res.status(500).json({ detail: error.message });
     }
 };

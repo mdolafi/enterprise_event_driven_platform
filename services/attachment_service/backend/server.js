@@ -33,7 +33,12 @@ app.use((err, req, res, next) => {
     res.status(500).json({ detail: 'Internal Server Error', error: err.message });
 });
 
-// Start Express Server
-app.listen(PORT, () => {
-    console.log(`Attachment Microservice running on port ${PORT}`);
-});
+// Only start the HTTP listener when executed directly (node server.js), NOT during tests
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Attachment Microservice running on port ${PORT}`);
+    });
+}
+
+// Export ONLY the Express app instance
+module.exports = app;

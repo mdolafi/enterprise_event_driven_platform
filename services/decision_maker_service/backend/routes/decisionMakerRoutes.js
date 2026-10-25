@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const decisionMakerController = require('../controllers/decisionMakerController');
+const decisionMakerController = require('../controllers/decisionController');
 
 router.post('/', decisionMakerController.recordDecision);
 router.get('/:decision_id', decisionMakerController.getDecisionById);

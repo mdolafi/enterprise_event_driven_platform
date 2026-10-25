@@ -1,83 +1,217 @@
 ﻿import React, { useState } from 'react';
 
-export default function Dashboard() {
-    const [activeTab, setActiveTab] = useState('user');
+export default function App() {
+    const [activeTab, setActiveTab] = useState('submitter_service');
+    const [consoleLogs, setConsoleLogs] = useState(['// Dashboard initialized. Ready to execute API requests...']);
 
-    const services = [
-        { id: 'user', name: 'User Service', port: 8000, status: 'UP', desc: 'Manages user accounts, roles, and authentication.' },
-        { id: 'submitter', name: 'Submitter Service', port: 8001, status: 'UP', desc: 'Handles CCB change request submissions.' },
-        { id: 'voter', name: 'Voter Service', port: 8002, status: 'UP', desc: 'Collects and records board member votes.' },
-        { id: 'decision', name: 'Decision Maker Service', port: 8003, status: 'UP', desc: 'Processes final approval/rejection decisions.' },
-        { id: 'notification', name: 'Notification Service', port: 8004, status: 'UP', desc: 'Dispatches email and system alerts.' },
-        { id: 'investigation', name: 'Investigation Service', port: 8005, status: 'UP', desc: 'Tracks impact analyses and investigations.' },
-        { id: 'attachment', name: 'Attachment Service', port: 8006, status: 'UP', desc: 'Manages uploaded documents and evidence.' },
-        { id: 'event_store', name: 'Event Store Service', port: 8007, status: 'UP', desc: 'Logs immutable platform events.' },
-    ];
+    const [formData, setFormData] = useState({
+        issue_title: '',
+        issue_category: 'Minor',
+        issue_priority: 'Low',
+        issue_domain: 'Application',
+        assigned_to: '',
+        outage: '',
+        postmaster: '',
+        issue_proposed_impl_date: '',
+        issue_review_date: '',
+        system_owner_approval: 'Pending',
+        attachment_s3_url: '',
+        issue_description: '',
+        issue_justification: '',
+        system_owner_approval_justification: ''
+    });
 
-    const currentService = services.find((s) => s.id === activeTab);
+    const logToConsole = (msg) => {
+        setConsoleLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmitterSubmit = async (e) => {
+        e.preventDefault();
+        logToConsole(`[POST] Sending Issue payload to http://localhost:8001/events...`);
+
+        try {
+            const res = await fetch('http://localhost:8001/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+            const data = await res.json();
+            logToConsole(`[RESPONSE ${res.status}] ${JSON.stringify(data, null, 2)}`);
+        } catch (err) {
+            logToConsole(`[SUBMITTED PAYLOAD]\n${JSON.stringify(formData, null, 2)}`);
+        }
+    };
 
     return (
-        <div style={styles.container}>
-            <header style={styles.header}>
-                <div style={styles.headerContent}>
-                    <h1 style={styles.title}>MARAD CCB Platform Dashboard</h1>
-                    <span style={styles.badge}>8 Microservices Active</span>
-                </div>
+        <div className="min-h-screen bg-slate-100 text-slate-800 font-sans pb-12">
+            <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
+                <h1 className="text-xl font-bold text-slate-900">MARAD CCB Platform Dashboard</h1>
+                <span className="text-xs font-semibold px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full">8 Microservices Active</span>
             </header>
 
-            <nav style={styles.tabNav}>
-                {services.map((s) => (
-                    <button
-                        key={s.id}
-                        onClick={() => setActiveTab(s.id)}
-                        style={{
-                            ...styles.tabButton,
-                            ...(activeTab === s.id ? styles.activeTabButton : {}),
-                        }}
-                    >
-                        {s.name}
-                        <span style={styles.portLabel}>:{s.port}</span>
-                    </button>
-                ))}
-            </nav>
-
-            <main style={styles.mainContent}>
-                {currentService && (
-                    <div style={styles.card}>
-                        <h2>{currentService.name} Panel</h2>
-                        <p style={styles.desc}>{currentService.desc}</p>
-                        <div style={styles.statusBox}>
-                            <strong>Backend Endpoint: </strong>
-                            <code>http://localhost:{currentService.port}/health</code>
-                        </div>
-                        <a
-                            href={`http://localhost:${currentService.port}/health`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={styles.linkButton}
-                        >
-                            Test Service Health Endpoint ↗
-                        </a>
+            <main className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <section className="lg:col-span-8 space-y-6">
+                    {/* Navigation Tabs */}
+                    <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-2">
+                        {[
+                            { id: 'user_service', label: 'User (:8000)' },
+                            { id: 'submitter_service', label: 'Submitter (:8001)' },
+                            { id: 'voter_service', label: 'Voter (:8002)' },
+                            { id: 'decision_maker_service', label: 'Decision Maker (:8003)' },
+                            { id: 'notification_service', label: 'Notification (:8004)' },
+                            { id: 'investigation_service', label: 'Investigation (:8005)' },
+                            { id: 'attachment_service', label: 'Attachment (:8006)' },
+                            { id: 'event_store_service', label: 'Event Store (:8007)' },
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`px-3 py-2 rounded-lg text-xs font-semibold transition ${activeTab === tab.id
+                                        ? 'bg-sky-600 text-white shadow-sm'
+                                        : 'text-slate-600 hover:bg-slate-100'
+                                    }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
                     </div>
-                )}
+
+                    {/* Form Container */}
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        {activeTab === 'submitter_service' && (
+                            <form onSubmit={handleSubmitterSubmit} className="space-y-4">
+                                <div className="border-b border-slate-100 pb-3 flex justify-between items-center">
+                                    <h2 className="text-lg font-bold text-slate-900">Submitter Service — Create Issue Record</h2>
+                                    <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md border border-slate-200">Port 8001</span>
+                                </div>
+
+                                {/* Auto-managed Readonly Banner */}
+                                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-600 grid grid-cols-3 gap-2 font-mono">
+                                    <div><strong>issue_unique_id:</strong> (Auto UUID)</div>
+                                    <div><strong>issue_id:</strong> (Auto BigInt Sequence)</div>
+                                    <div><strong>issue_submitter:</strong> (API User Context)</div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Issue Title *</label>
+                                    <input type="text" name="issue_title" required value={formData.issue_title} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="e.g. Upgrade PostgreSQL database cluster" />
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+                                        <select name="issue_category" value={formData.issue_category} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                            <option value="Minor">Minor</option>
+                                            <option value="Major">Major</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Priority</label>
+                                        <select name="issue_priority" value={formData.issue_priority} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                            <option value="Low">Low</option>
+                                            <option value="High">High</option>
+                                            <option value="Emergency">Emergency</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Domain</label>
+                                        <select name="issue_domain" value={formData.issue_domain} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                            <option value="Application">Application</option>
+                                            <option value="Infrastructure">Infrastructure</option>
+                                            <option value="Security">Security</option>
+                                            <option value="EA">EA</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Assigned To (Email)</label>
+                                        <input type="email" name="assigned_to" required value={formData.assigned_to} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="lead@marad.gov" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Outage Impact</label>
+                                        <input type="text" name="outage" required value={formData.outage} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. None / 2 Hours" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Postmaster Email</label>
+                                        <input type="email" name="postmaster" value={formData.postmaster} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="postmaster@marad.gov" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Proposed Impl Date</label>
+                                        <input type="date" name="issue_proposed_impl_date" value={formData.issue_proposed_impl_date} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Review Date</label>
+                                        <input type="date" name="issue_review_date" value={formData.issue_review_date} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">System Owner Approval</label>
+                                        <select name="system_owner_approval" value={formData.system_owner_approval} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                                            <option value="Pending">Pending</option>
+                                            <option value="Approved">Approved</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Attachment S3 URL</label>
+                                    <input type="text" name="attachment_s3_url" value={formData.attachment_s3_url} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="https://s3.amazonaws.com/marad-bucket/doc.pdf" />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-600 mb-1">Issue Description *</label>
+                                    <textarea name="issue_description" rows="3" required value={formData.issue_description} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Detailed technical issue description..."></textarea>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">Issue Justification</label>
+                                        <textarea name="issue_justification" rows="2" value={formData.issue_justification} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Business justification..."></textarea>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-600 mb-1">System Owner Justification</label>
+                                        <textarea name="system_owner_approval_justification" rows="2" value={formData.system_owner_approval_justification} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Approval justification..."></textarea>
+                                    </div>
+                                </div>
+
+                                <button type="submit" className="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm">
+                                    Submit Issue Record
+                                </button>
+                            </form>
+                        )}
+
+                        {activeTab !== 'submitter_service' && (
+                            <div className="text-center py-12 text-slate-500">
+                                <p className="text-sm">Service form for <strong className="text-slate-800">{activeTab}</strong> is ready for payload testing.</p>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                {/* Execution Output Console */}
+                <section className="lg:col-span-4">
+                    <div className="bg-slate-900 text-slate-200 p-4 rounded-2xl border border-slate-800 h-full font-mono text-xs flex flex-col">
+                        <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
+                            <span className="font-bold text-sky-400">Execution Output</span>
+                            <button onClick={() => setConsoleLogs([])} className="text-slate-500 hover:text-slate-300">Clear</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto space-y-2 max-h-[550px]">
+                            {consoleLogs.map((log, idx) => (
+                                <pre key={idx} className="whitespace-pre-wrap leading-relaxed text-slate-300 border-b border-slate-800 pb-1">{log}</pre>
+                            ))}
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     );
 }
-
-const styles = {
-    container: { fontFamily: 'Segoe UI, sans-serif', backgroundColor: '#eef2f5', minHeight: '100vh', margin: 0 },
-    header: { backgroundColor: '#002b49', color: '#ffffff', padding: '18px 32px' },
-    headerContent: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1200px', margin: '0 auto' },
-    title: { margin: 0, fontSize: '24px' },
-    badge: { backgroundColor: '#28a745', color: '#fff', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' },
-    tabNav: { display: 'flex', flexWrap: 'wrap', backgroundColor: '#ffffff', borderBottom: '2px solid #dce3e8', padding: '0 32px', maxWidth: '1200px', margin: '0 auto' },
-    tabButton: { padding: '14px 20px', border: 'none', borderBottom: '3px solid transparent', backgroundColor: 'transparent', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#555' },
-    activeTabButton: { color: '#002b49', borderBottom: '3px solid #0056b3', backgroundColor: '#f8f9fa' },
-    portLabel: { fontSize: '11px', marginLeft: '6px', opacity: 0.6 },
-    mainContent: { maxWidth: '1200px', margin: '30px auto', padding: '0 20px' },
-    card: { backgroundColor: '#ffffff', padding: '24px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
-    desc: { color: '#666', fontSize: '15px' },
-    statusBox: { marginTop: '20px', padding: '12px', backgroundColor: '#f1f3f5', borderRadius: '4px' },
-    linkButton: { display: 'inline-block', marginTop: '16px', padding: '10px 18px', backgroundColor: '#0056b3', color: '#fff', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold' }
-};

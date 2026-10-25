@@ -1,0 +1,7 @@
+{
+    "title": "Database Indexing Optimization for Audit Trail",
+    "description": "Add composite index on issues table for user query speed.",
+    "priority": "HIGH",
+    "system_affected": "marad_ccb_db",
+    "submitter_email": "edward.kegan.ctr@dot.gov"
+}

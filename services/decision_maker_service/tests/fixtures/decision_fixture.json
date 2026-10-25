@@ -1,0 +1,16 @@
+{
+    "validDecision": {
+        "decision_maker_name": "Chairperson Smith",
+        "proposal_id": "ccb-2026-0042",
+        "final_decision": "APPROVED",
+        "notes": "Approved unanimously by the committee.",
+        "approverEmail": "chairperson@dot.gov"
+    },
+    "invalidApproverDecision": {
+        "decision_maker_name": "External Auditor",
+        "proposal_id": "ccb-2026-0042",
+        "final_decision": "APPROVED",
+        "notes": "Unauthorized domain attempt.",
+        "approverEmail": "auditor@external.com"
+    }
+}

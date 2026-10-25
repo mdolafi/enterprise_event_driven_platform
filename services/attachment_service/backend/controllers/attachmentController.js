@@ -1,18 +1,34 @@
 const db = require('../config/db');
 
 // POST /api/v1/attachments
-exports.createAttachment = async (req, res) => {
-    const { proposal_id, file_name, file_path } = req.body;
+// Inside attachmentController.js
+exports.createAttachment = async (req, res, next) => {
     try {
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({ error: 'Request body is required' });
+        }
+
+        const { proposal_id, uploaderEmail, filename } = req.body;
+
+        if (!proposal_id || !uploaderEmail) {
+            return res.status(400).json({ error: 'Missing required attachment fields' });
+        }
+
+        if (!uploaderEmail.endsWith('@dot.gov')) {
+            return res.status(400).json({ error: 'Uploader email must belong to @dot.gov domain' });
+        }
+
+        // Save attachment metadata to database
         const result = await db.query(
-            `INSERT INTO attachments (proposal_id, file_name, file_path)
-       VALUES ($1, $2, $3)
-       RETURNING *`,
-            [proposal_id, file_name, file_path]
+            `INSERT INTO attachments (proposal_id, uploader_email, file_name)
+             VALUES ($1, $2, $3)
+             RETURNING attachment_id AS id, proposal_id, uploader_email AS "uploaderEmail", file_name AS filename`,
+            [proposal_id, uploaderEmail, filename || 'document.pdf']
         );
-        res.status(201).json(result.rows[0]);
+
+        return res.status(201).json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ detail: error.message });
+        return res.status(500).json({ detail: error.message });
     }
 };
 

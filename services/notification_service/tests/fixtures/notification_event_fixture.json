@@ -1,0 +1,9 @@
+{
+  "event_type": "issue.ready_for_decision",
+  "issue_id": "ccb-2026-0042",
+  "recipient": "bob.ellington@dot.gov",
+  "payload": {
+    "quorum_reached": true,
+    "total_votes": 3
+  }
+}

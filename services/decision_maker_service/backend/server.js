@@ -2,24 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
-// Load environment variables from .env file at user_service root
+// Load environment variables from .env file
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
-const PORT = process.env.PORT || 8000;
-
-// Enable Cross-Origin Resource Sharing (CORS) for frontend requests
+const PORT = process.env.PORT || 8003;
 app.use(cors());
-
-// Express built-in middleware to parse incoming JSON payloads
 app.use(express.json());
-
-// Health Check Endpoint (useful for Docker/Podman container health probes)
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'UP', service: 'user_service' });
+    res.status(200).json({ status: 'UP', service: 'decision_maker_service' });
 });
 
-// Mount User Routes under /api/v1/users
+// Mount Decision Maker Routes
 app.use('/api/v1/decision_makers', require('./routes/decisionMakerRoutes'));
 
 // Global 404 Handler for undefined routes
@@ -33,7 +27,11 @@ app.use((err, req, res, next) => {
     res.status(500).json({ detail: 'Internal Server Error', error: err.message });
 });
 
-// Start Express Server
-app.listen(PORT, () => {
-    console.log(`User Microservice running on port ${PORT}`);
-});
+// Only listen on port when executed directly (node server.js), NOT during Supertest imports
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Decision Maker Microservice running on port ${PORT}`);
+    });
+}
+
+module.exports = app;

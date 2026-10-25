@@ -1,0 +1,16 @@
+{
+    "validInvestigation": {
+        "proposal_id": "ccb-2026-0042",
+        "investigator_name": "Michael Kim",
+        "investigatorEmail": "michael.kim@dot.gov",
+        "findings": "Reviewed DB execution plan. Index reduces query cost from 1200 to 14.",
+        "status": "INITIATED"
+    },
+    "invalidInvestigator": {
+        "proposal_id": "ccb-2026-0042",
+        "investigator_name": "External Contractor",
+        "investigatorEmail": "contractor@external-domain.com",
+        "findings": "Unauthorized domain attempt.",
+        "status": "INITIATED"
+    }
+}

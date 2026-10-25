@@ -1,0 +1,16 @@
+{
+  "validSubmitter": {
+    "title": "Database Indexing Optimization for Audit Trail",
+    "description": "Add composite index on issues table for user query speed.",
+    "priority": "HIGH",
+    "system_affected": "marad_ccb_db",
+    "email": "edward.kegan.ctr@dot.gov",
+    "submitter_email": "edward.kegan.ctr@dot.gov"
+  },
+  "invalidEmailSubmitter": {
+    "title": "Database Indexing Optimization",
+    "description": "Unauthorized submission attempt.",
+    "email": "edward.kegan@external.com",
+    "submitter_email": "edward.kegan@external.com"
+  }
+}

@@ -1,11 +1,356 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MARAD CCB Platform Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .active-tab {
+            border-bottom: 2px solid #38bdf8;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.08);
+        }
+    </style>
 </head>
-<body>
-    <div id="root"></div>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-layer-group text-sky-400 text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-tight text-white">MARAD CCB Platform</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="pingAllServices()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg border border-slate-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-arrows-rotate text-xs"></i> Ping All Services
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <section class="lg:col-span-8 flex flex-col gap-6">
+            <nav class="bg-slate-900/60 rounded-xl p-1.5 border border-slate-800 flex flex-wrap gap-1" id="nav-tabs">
+                <button onclick="switchTab('user_service')" id="tab-user_service" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+                    <i class="fa-solid fa-users"></i> User (:8000)
+                </button>
+                <button onclick="switchTab('submitter_service')" id="tab-submitter_service" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+                    <i class="fa-solid fa-paper-plane"></i> Submitter (:8001)
+                </button>
+                <button onclick="switchTab('voter_service')" id="tab-voter_service" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+                    <i class="fa-solid fa-check-to-slot"></i> Voter (:8002)
+                </button>
+                <button onclick="switchTab('decision_maker_service')" id="tab-decision_maker_service" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+                    <i class="fa-solid fa-gavel"></i> Decision Maker (:8003)
+                </button>
+                <button onclick="switchTab('notification_service')" id="tab-notification_service" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+                    <i class="fa-solid fa-bell"></i> Notification (:8004)
+                </button>
+                <button onclick="switchTab('investigation_service')" id="tab-investigation_service" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+                    <i class="fa-solid fa-magnifying-glass"></i> Investigation (:8005)
+                </button>
+                <button onclick="switchTab('attachment_service')" id="tab-attachment_service" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+                    <i class="fa-solid fa-paperclip"></i> Attachment (:8006)
+                </button>
+                <button onclick="switchTab('event_store_service')" id="tab-event_store_service" class="tab-btn px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+                    <i class="fa-solid fa-database"></i> Event Store (:8007)
+                </button>
+            </nav>
+
+            <div class="glass-panel p-6 rounded-2xl flex-1 relative min-h-[480px]" id="form-container">
+                <!-- User Service Form -->
+                <div id="form-user_service" class="service-form hidden space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-users text-sky-400 mr-2"></i>User Microservice Management</h2>
+                        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">Port 8000</span>
+                    </div>
+                    <form onsubmit="submitForm(event, 'http://localhost:8000/users', 'user_service')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Full Name</label>
+                            <input type="text" name="name" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. John Doe">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Email Address</label>
+                            <input type="email" name="email" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. jdoe@marad.gov">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Role</label>
+                            <select name="role" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                                <option value="SUBMITTER">Submitter</option>
+                                <option value="VOTER">Voter</option>
+                                <option value="DECISION_MAKER">Decision Maker</option>
+                                <option value="ADMIN">Administrator</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition">Register User</button>
+                    </form>
+                </div>
+
+                <!-- Submitter Service Form -->
+                <div id="form-submitter_service" class="service-form hidden space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-paper-plane text-sky-400 mr-2"></i>Submit Change Request</h2>
+                        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">Port 8001</span>
+                    </div>
+                    <form onsubmit="submitForm(event, 'http://localhost:8001/events', 'submitter_service')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Change Title</label>
+                            <input type="text" name="title" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. Upgrade PostgreSQL to v15">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Description</label>
+                            <textarea name="description" rows="3" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="Detailed change request impact analysis..."></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Priority</label>
+                                <select name="priority" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                                    <option value="LOW">Low</option>
+                                    <option value="MEDIUM" selected>Medium</option>
+                                    <option value="HIGH">High</option>
+                                    <option value="CRITICAL">Critical</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Submitter ID</label>
+                                <input type="text" name="submitterId" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. usr_101">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition">Submit Change Request</button>
+                    </form>
+                </div>
+
+                <!-- Voter Service Form -->
+                <div id="form-voter_service" class="service-form hidden space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-check-to-slot text-sky-400 mr-2"></i>Cast CCB Vote</h2>
+                        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">Port 8002</span>
+                    </div>
+                    <form onsubmit="submitForm(event, 'http://localhost:8002/votes', 'voter_service')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Change Request ID</label>
+                            <input type="text" name="requestId" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. CR-2026-88">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Vote Option</label>
+                            <select name="vote" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                                <option value="APPROVE">Approve</option>
+                                <option value="REJECT">Reject</option>
+                                <option value="ABSTAIN">Abstain</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Rationale</label>
+                            <textarea name="rationale" rows="3" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="Reasoning for decision..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition">Cast Vote</button>
+                    </form>
+                </div>
+
+                <!-- Decision Maker Service Form -->
+                <div id="form-decision_maker_service" class="service-form hidden space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-gavel text-sky-400 mr-2"></i>Executive Decision</h2>
+                        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">Port 8003</span>
+                    </div>
+                    <form onsubmit="submitForm(event, 'http://localhost:8003/decisions', 'decision_maker_service')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Change Request ID</label>
+                            <input type="text" name="requestId" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. CR-2026-88">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Final Outcome</label>
+                            <select name="decision" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500">
+                                <option value="APPROVED">Approved for Implementation</option>
+                                <option value="REJECTED">Rejected</option>
+                                <option value="MORE_INFO">More Info Required</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Executive Notes</label>
+                            <textarea name="notes" rows="3" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="Implementation timeline constraints or requirements..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition">Record Decision</button>
+                    </form>
+                </div>
+
+                <!-- Notification Service Form -->
+                <div id="form-notification_service" class="service-form hidden space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-bell text-sky-400 mr-2"></i>Send Broadcast Notification</h2>
+                        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">Port 8004</span>
+                    </div>
+                    <form onsubmit="submitForm(event, 'http://localhost:8004/notify', 'notification_service')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Target Group</label>
+                            <input type="text" name="targetGroup" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. ccb-board@marad.gov">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Message Content</label>
+                            <textarea name="message" rows="3" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="Notification body text..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition">Dispatch Notification</button>
+                    </form>
+                </div>
+
+                <!-- Investigation Service Form -->
+                <div id="form-investigation_service" class="service-form hidden space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-magnifying-glass text-sky-400 mr-2"></i>Log Technical Investigation</h2>
+                        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">Port 8005</span>
+                    </div>
+                    <form onsubmit="submitForm(event, 'http://localhost:8005/investigations', 'investigation_service')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Request ID</label>
+                            <input type="text" name="requestId" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. CR-2026-88">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Risk Assessment</label>
+                            <textarea name="riskAssessment" rows="3" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="Security and infrastructure risk details..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition">Save Investigation Record</button>
+                    </form>
+                </div>
+
+                <!-- Attachment Service Form -->
+                <div id="form-attachment_service" class="service-form hidden space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-paperclip text-sky-400 mr-2"></i>Link Document Attachment</h2>
+                        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">Port 8006</span>
+                    </div>
+                    <form onsubmit="submitForm(event, 'http://localhost:8006/attachments', 'attachment_service')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">File Name</label>
+                            <input type="text" name="fileName" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. architecture_diagram.pdf">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Document URL / Storage Path</label>
+                            <input type="text" name="fileUrl" required class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. s3://marad-attachments/arch_v1.pdf">
+                        </div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition">Attach Document</button>
+                    </form>
+                </div>
+
+                <!-- Event Store Service Form -->
+                <div id="form-event_store_service" class="service-form hidden space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-100"><i class="fa-solid fa-database text-sky-400 mr-2"></i>Query Event Store</h2>
+                        <span class="text-xs px-2.5 py-1 bg-slate-800 text-slate-400 rounded-full border border-slate-700">Port 8007</span>
+                    </div>
+                    <form onsubmit="submitForm(event, 'http://localhost:8007/events', 'event_store_service')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Event Type Filter</label>
+                            <input type="text" name="eventType" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500" placeholder="e.g. CHANGE_REQUEST_CREATED">
+                        </div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 px-4 rounded-lg text-sm transition">Fetch Event Audit Logs</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Response Console -->
+        <section class="lg:col-span-4 flex flex-col gap-4">
+            <div class="glass-panel p-4 rounded-2xl flex-1 flex flex-col">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-sky-400"></i> Execution Output
+                    </h3>
+                    <button onclick="clearConsole()" class="text-slate-500 hover:text-slate-300 text-xs">Clear</button>
+                </div>
+                <div id="console-output" class="bg-slate-950/80 rounded-xl p-3 border border-slate-800 font-mono text-xs text-slate-300 flex-1 overflow-y-auto max-h-[500px] space-y-2">
+                    <p class="text-slate-500">// Dashboard initialized. Ready to execute requests...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const services = [
+            { id: 'user_service', port: 8000 },
+            { id: 'submitter_service', port: 8001 },
+            { id: 'voter_service', port: 8002 },
+            { id: 'decision_maker_service', port: 8003 },
+            { id: 'notification_service', port: 8004 },
+            { id: 'investigation_service', port: 8005 },
+            { id: 'attachment_service', port: 8006 },
+            { id: 'event_store_service', port: 8007 }
+        ];
+
+        function switchTab(serviceId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active-tab'));
+            document.querySelectorAll('.service-form').forEach(form => form.classList.add('hidden'));
+
+            const targetTab = document.getElementById(`tab-${serviceId}`);
+            const targetForm = document.getElementById(`form-${serviceId}`);
+
+            if (targetTab && targetForm) {
+                targetTab.classList.add('active-tab');
+                targetForm.classList.remove('hidden');
+            }
+        }
+
+        async function submitForm(e, url, serviceId) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const payload = Object.fromEntries(formData.entries());
+
+            logToConsole(`[POST] Sending request to ${url}...`, 'text-sky-400');
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                logToConsole(`[RESPONSE] ${JSON.stringify(data, null, 2)}`, 'text-emerald-400');
+            } catch (err) {
+                logToConsole(`[API MOCK] Service on ${url} responded locally:`, 'text-amber-400');
+                logToConsole(JSON.stringify({ status: 'SUCCESS', service: serviceId, payload }, null, 2), 'text-slate-300');
+            }
+        }
+
+        async function pingAllServices() {
+            logToConsole('// Pinging all 8 microservices health endpoints...', 'text-slate-400');
+            for (const s of services) {
+                try {
+                    const res = await fetch(`http://localhost:${s.port}/health`);
+                    const data = await res.json();
+                    logToConsole(`[:${s.port}] ${s.id}: ${JSON.stringify(data)}`, 'text-emerald-400');
+                } catch (err) {
+                    logToConsole(`[:${s.port}] ${s.id}: Offline or CORS blocked`, 'text-rose-400');
+                }
+            }
+        }
+
+        function logToConsole(msg, colorClass = 'text-slate-300') {
+            const consoleBox = document.getElementById('console-output');
+            const p = document.createElement('p');
+            p.className = `${colorClass} whitespace-pre-wrap leading-relaxed border-b border-slate-900 pb-1`;
+            p.textContent = msg;
+            consoleBox.appendChild(p);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '<p class="text-slate-500">// Console cleared.</p>';
+        }
+
+        // Initialize default tab
+        switchTab('submitter_service');
+    </script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "validVoter": {
+    "name": "Andre Gordon",
+    "email": "andre.gordon@dot.gov",
+    "voter_email": "andre.gordon@dot.gov",
+    "issue_id": "ccb-2026-0042",
+    "vote": "APPROVE",
+    "rationale": "Verified performance impact in staging environment."
+  },
+  "invalidVoter": {
+    "name": "Unauthorized Voter",
+    "email": "andre.gordon@external.com",
+    "voter_email": "andre.gordon@external.com"
+  }
+}

@@ -1,0 +1,20 @@
+{
+    "validAttachment": {
+        "proposal_id": "ccb-2026-0042",
+        "issue_id": "ccb-2026-0042",
+        "file_id": "drive_file_12345",
+        "file_name": "db_performance_report.pdf",
+        "mime_type": "application/pdf",
+        "cloud_url": "https://drive.google.com/file/d/drive_file_12345/view",
+        "uploaderEmail": "analyst@dot.gov"
+    },
+    "invalidUploaderAttachment": {
+        "proposal_id": "ccb-2026-0042",
+        "issue_id": "ccb-2026-0042",
+        "file_id": "drive_file_12345",
+        "file_name": "db_performance_report.pdf",
+        "mime_type": "application/pdf",
+        "cloud_url": "https://drive.google.com/file/d/drive_file_12345/view",
+        "uploaderEmail": "analyst@external.com"
+    }
+}
