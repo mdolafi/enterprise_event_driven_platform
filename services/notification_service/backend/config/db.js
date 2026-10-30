@@ -1,12 +1,22 @@
-const { Pool } = require('pg');
-const path = require('path');
+﻿const { Pool } = require('pg');
 
-// Load .env from root notification_service/ directory
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
+const pool = new Pool(
+  process.env.DATABASE_URL
+    ? { connectionString: process.env.DATABASE_URL }
+    : {
+        host: process.env.DB_HOST || 'marad_ccb_postgres',
+        port: process.env.DB_PORT || 5432,
+        user: process.env.DB_USER || 'ccb_admin',
+        password: process.env.DB_PASSWORD || 'ccb_password123',
+        database: process.env.DB_NAME || 'marad_ccb_db',
+      }
+);
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+pool.on('connect', () => {
+  console.log('Connected to PostgreSQL database');
 });
+
+module.exports = {
+  query: (text, params) => pool.query(text, params),
+  pool
+};

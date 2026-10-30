@@ -1,19 +1,17 @@
-FROM node:20-alpine
-
+FROM node:20-alpine AS base
 WORKDIR /app
 
-# Copy package files first for caching
+FROM base AS dependencies
 COPY backend/package*.json ./backend/
+RUN cd backend && npm ci --only=production
 
-# Install production dependencies inside container
-RUN cd backend && npm install --production
-
-# Copy backend source code and configuration
+FROM base AS release
+ENV NODE_ENV=production
+COPY --from=dependencies /app/backend/node_modules ./backend/node_modules
 COPY backend/ ./backend/
 COPY .env ./
 COPY openapi.yaml ./
 
-# Changed from 8000 to 8001 for Submitter service
-EXPOSE 8007
-
+USER node
+EXPOSE 8006
 CMD ["node", "backend/server.js"]

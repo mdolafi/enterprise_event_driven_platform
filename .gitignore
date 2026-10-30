@@ -392,3 +392,6 @@ yarn-error.log*
 # Podman / Docker temporary build artifacts
 .podman/
 .docker/
+powershell_*.txt
+powershell_*.csv
+
