@@ -143,7 +143,7 @@ jobs:
 
       - name: Launch Postgres Database
         run: |
-          docker network create marad_ccb_network
+          docker network create marad_ccb_network || true
 
           docker run -d \
             --name marad_ccb_postgres \
@@ -156,7 +156,6 @@ jobs:
             -p 5432:5432 \
             postgres:15-alpine
 
-          # Bounded wait loop: try up to 20 times (40 seconds max)
           RETRIES=20
           until docker exec marad_ccb_postgres pg_isready -U postgres -d marad_ccb_db || [ $RETRIES -eq 0 ]; do
             echo "Waiting for postgres initialization... ($RETRIES retries left)"
@@ -175,18 +174,21 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@marad_ccb_postgres:5432/marad_ccb_db
         run: |
-          if [ -f "docker-compose.yml" ]; then
-            docker compose up -d
-          else
-            docker run -d --name event_store_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3001:3001 event_store_service:latest
-            docker run -d --name user_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3002:3002 user_service:latest
-            docker run -d --name submitter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3003:3003 submitter_service:latest
-            docker run -d --name investigation_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3004:3004 investigation_service:latest
-            docker run -d --name voter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3005:3005 voter_service:latest
-            docker run -d --name decision_maker_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3006:3006 decision_maker_service:latest
-            docker run -d --name notification_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3007:3007 notification_service:latest
-            docker run -d --name attachment_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3008:3008 attachment_service:latest
-          fi
+          # Populate fallback .env files in root and services in case Compose checks them
+          touch .env
+          for s in user_service submitter_service event_store_service investigation_service voter_service decision_maker_service notification_service attachment_service; do
+            touch "./services/$s/.env"
+          done
+
+          # Use the pre-built loaded images without triggering a rebuild
+          docker run -d --name event_store_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3001:3001 event_store_service:latest
+          docker run -d --name user_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3002:3002 user_service:latest
+          docker run -d --name submitter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3003:3003 submitter_service:latest
+          docker run -d --name investigation_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3004:3004 investigation_service:latest
+          docker run -d --name voter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3005:3005 voter_service:latest
+          docker run -d --name decision_maker_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3006:3006 decision_maker_service:latest
+          docker run -d --name notification_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3007:3007 notification_service:latest
+          docker run -d --name attachment_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3008:3008 attachment_service:latest
 
           sleep 5
 
