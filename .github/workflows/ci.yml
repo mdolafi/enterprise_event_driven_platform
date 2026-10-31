@@ -36,16 +36,12 @@ jobs:
             npm ci
           elif [ -f "package.json" ]; then
             npm install
-          else
-            echo "No root package.json found; skipping package install."
           fi
 
       - name: Run Linter
         run: |
           if [ -f "package.json" ]; then
             npm run lint --if-present
-          else
-            echo "No package.json found; skipping linter."
           fi
 
   # ---------------------------------------------------------------------------
@@ -70,16 +66,32 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Ensure Dummy .env Exists for Build Context
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Root Dependencies
         run: |
-          if [ ! -f "./services/${{ matrix.service }}/.env" ]; then
-            if [ -f "./services/${{ matrix.service }}/.env.example" ]; then
-              cp "./services/${{ matrix.service }}/.env.example" "./services/${{ matrix.service }}/.env"
-            elif [ -f "./.env.example" ]; then
-              cp "./.env.example" "./services/${{ matrix.service }}/.env"
-            else
-              touch "./services/${{ matrix.service }}/.env"
-            fi
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          elif [ -f "package.json" ]; then
+            npm install
+          fi
+
+      - name: Stage Service Assets for Build Context
+        run: |
+          # Ensure openapi.yaml is at root context if Dockerfile copies it from root
+          if [ -f "./services/${{ matrix.service }}/openapi.yaml" ]; then
+            cp "./services/${{ matrix.service }}/openapi.yaml" ./openapi.yaml
+          fi
+
+          # Ensure fallback .env exists at root and in service dir
+          touch .env
+          if [ -f "./services/${{ matrix.service }}/.env.example" ]; then
+            cp "./services/${{ matrix.service }}/.env.example" ./services/${{ matrix.service }}/.env
+          else
+            touch "./services/${{ matrix.service }}/.env"
           fi
 
       - name: Set up Docker Buildx
@@ -88,7 +100,7 @@ jobs:
       - name: Build and Cache Image
         uses: docker/build-push-action@v5
         with:
-          context: ./services/${{ matrix.service }}
+          context: .
           file: ./services/${{ matrix.service }}/Dockerfile
           push: false
           tags: ${{ matrix.service }}:latest
@@ -174,13 +186,6 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@marad_ccb_postgres:5432/marad_ccb_db
         run: |
-          # Populate fallback .env files in root and services in case Compose checks them
-          touch .env
-          for s in user_service submitter_service event_store_service investigation_service voter_service decision_maker_service notification_service attachment_service; do
-            touch "./services/$s/.env"
-          done
-
-          # Use the pre-built loaded images without triggering a rebuild
           docker run -d --name event_store_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3001:3001 event_store_service:latest
           docker run -d --name user_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3002:3002 user_service:latest
           docker run -d --name submitter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3003:3003 submitter_service:latest
