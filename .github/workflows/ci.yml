@@ -81,12 +81,6 @@ jobs:
             fi
           fi
 
-          # Ensure package-lock.json exists inside backend/ so 'npm ci' does not fail
-          if [ -d "$TARGET_DIR/backend" ] && [ -f "$TARGET_DIR/backend/package.json" ] && [ ! -f "$TARGET_DIR/backend/package-lock.json" ]; then
-            echo "Generating package-lock.json for $TARGET_DIR/backend..."
-            (cd "$TARGET_DIR/backend" && npm i --package-lock-only)
-          fi
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
