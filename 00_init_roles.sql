@@ -1,0 +1,1 @@
+DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'ccb_admin') THEN CREATE ROLE ccb_admin WITH SUPERUSER CREATEDB CREATEROLE LOGIN PASSWORD 'ccb_admin'; END IF; END $$;

@@ -72,7 +72,6 @@ jobs:
 
       - name: Ensure Dummy .env Exists for Build Context
         run: |
-          # If the service directory does not have a .env file, create an empty one
           if [ ! -f "./services/${{ matrix.service }}/.env" ]; then
             if [ -f "./services/${{ matrix.service }}/.env.example" ]; then
               cp "./services/${{ matrix.service }}/.env.example" "./services/${{ matrix.service }}/.env"
@@ -152,14 +151,25 @@ jobs:
             -e POSTGRES_DB=marad_ccb_db \
             -e POSTGRES_USER=postgres \
             -e POSTGRES_PASSWORD=postgres \
-            -v ${{ github.workspace }}/init_schema.sql:/docker-entrypoint-initdb.d/init_schema.sql:ro \
+            -v ${{ github.workspace }}/00_init_roles.sql:/docker-entrypoint-initdb.d/00_init_roles.sql:ro \
+            -v ${{ github.workspace }}/init_schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro \
             -p 5432:5432 \
             postgres:15-alpine
 
-          until docker exec marad_ccb_postgres pg_isready -U postgres -d marad_ccb_db; do
-            echo "Waiting for postgres initialization..."
+          # Bounded wait loop: try up to 20 times (40 seconds max)
+          RETRIES=20
+          until docker exec marad_ccb_postgres pg_isready -U postgres -d marad_ccb_db || [ $RETRIES -eq 0 ]; do
+            echo "Waiting for postgres initialization... ($RETRIES retries left)"
             sleep 2
+            RETRIES=$((RETRIES-1))
           done
+
+          if [ $RETRIES -eq 0 ]; then
+            echo "::error::Postgres failed to initialize or exited prematurely."
+            echo "=== Postgres Startup Logs ==="
+            docker logs marad_ccb_postgres
+            exit 1
+          fi
 
       - name: Start Microservices Stack
         env:
@@ -184,10 +194,10 @@ jobs:
         run: npx jest tests/e2e/caseLifecycle.e2e.test.js --runInBand --verbose
 
       - name: Dump Container Logs on Failure
-        if: failure()
+        if: always()
         run: |
           echo "=== Postgres Logs ==="
-          docker logs marad_ccb_postgres --tail 100
+          docker logs marad_ccb_postgres --tail 100 || true
           for svc in event_store_service user_service submitter_service investigation_service voter_service decision_maker_service notification_service attachment_service; do
             echo "=== Logs for $svc ==="
             docker logs "$svc" --tail 100 || true
