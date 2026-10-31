@@ -66,32 +66,25 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Root Dependencies
+      - name: Prepare Service Build Directory
         run: |
-          if [ -f "package-lock.json" ]; then
-            npm ci
-          elif [ -f "package.json" ]; then
-            npm install
+          TARGET_DIR="./services/${{ matrix.service }}"
+
+          # Ensure a fallback .env exists inside the service directory for Docker COPY .env ./
+          if [ ! -f "$TARGET_DIR/.env" ]; then
+            if [ -f "$TARGET_DIR/.env.example" ]; then
+              cp "$TARGET_DIR/.env.example" "$TARGET_DIR/.env"
+            elif [ -f "./.env.example" ]; then
+              cp "./.env.example" "$TARGET_DIR/.env"
+            else
+              touch "$TARGET_DIR/.env"
+            fi
           fi
 
-      - name: Stage Service Assets for Build Context
-        run: |
-          # Ensure openapi.yaml is at root context if Dockerfile copies it from root
-          if [ -f "./services/${{ matrix.service }}/openapi.yaml" ]; then
-            cp "./services/${{ matrix.service }}/openapi.yaml" ./openapi.yaml
-          fi
-
-          # Ensure fallback .env exists at root and in service dir
-          touch .env
-          if [ -f "./services/${{ matrix.service }}/.env.example" ]; then
-            cp "./services/${{ matrix.service }}/.env.example" ./services/${{ matrix.service }}/.env
-          else
-            touch "./services/${{ matrix.service }}/.env"
+          # Ensure package-lock.json exists inside backend/ so 'npm ci' does not fail
+          if [ -d "$TARGET_DIR/backend" ] && [ -f "$TARGET_DIR/backend/package.json" ] && [ ! -f "$TARGET_DIR/backend/package-lock.json" ]; then
+            echo "Generating package-lock.json for $TARGET_DIR/backend..."
+            (cd "$TARGET_DIR/backend" && npm i --package-lock-only)
           fi
 
       - name: Set up Docker Buildx
@@ -100,7 +93,7 @@ jobs:
       - name: Build and Cache Image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./services/${{ matrix.service }}
           file: ./services/${{ matrix.service }}/Dockerfile
           push: false
           tags: ${{ matrix.service }}:latest
