@@ -1,0 +1,165 @@
+name: Platform CI - Build & Integration Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Phase 1: Lint & Code Style Checks
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint & Code Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root & Test Dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint --if-present
+
+  # ---------------------------------------------------------------------------
+  # Phase 2: Parallel Container Builds with GHA Layer Caching
+  # ---------------------------------------------------------------------------
+  build-services:
+    name: Build Image - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - user_service
+          - submitter_service
+          - event_store_service
+          - investigation_service
+          - voter_service
+          - decision_maker_service
+          - notification_service
+          - attachment_service
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Cache Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: false
+          tags: ${{ matrix.service }}:latest
+          outputs: type=docker,dest=/tmp/${{ matrix.service }}.tar
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.service }}
+          path: /tmp/${{ matrix.service }}.tar
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Phase 3: E2E Integration Suite Execution
+  # ---------------------------------------------------------------------------
+  e2e-test:
+    name: Run 7-Stage E2E Integration Suite
+    needs: [lint, build-services]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Download Built Images
+        uses: actions/download-artifact@v4
+        with:
+          pattern: image-*
+          path: /tmp/images
+          merge-multiple: true
+
+      - name: Load Docker Images into Engine
+        run: |
+          for img in /tmp/images/*.tar; do
+            echo "Loading $img..."
+            docker load -i "$img"
+          done
+
+      - name: Launch Postgres Database
+        run: |
+          docker network create marad_ccb_network
+
+          docker run -d \
+            --name marad_ccb_postgres \
+            --network marad_ccb_network \
+            -e POSTGRES_DB=marad_ccb_db \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -v ${{ github.workspace }}/init_schema.sql:/docker-entrypoint-initdb.d/init_schema.sql:ro \
+            -p 5432:5432 \
+            postgres:15-alpine
+
+          # Await PostgreSQL readiness
+          until docker exec marad_ccb_postgres pg_isready -U postgres -d marad_ccb_db; do
+            echo "Waiting for postgres initialization..."
+            sleep 2
+          done
+
+      - name: Start Microservices Stack
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@marad_ccb_postgres:5432/marad_ccb_db
+        run: |
+          # If docker-compose.yml exists, run via compose:
+          if [ -f "docker-compose.yml" ]; then
+            docker compose up -d
+          else
+            # Manual fallback invocation on shared network
+            docker run -d --name event_store_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3001:3001 event_store_service:latest
+            docker run -d --name user_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3002:3002 user_service:latest
+            docker run -d --name submitter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3003:3003 submitter_service:latest
+            docker run -d --name investigation_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3004:3004 investigation_service:latest
+            docker run -d --name voter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3005:3005 voter_service:latest
+            docker run -d --name decision_maker_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3006:3006 decision_maker_service:latest
+            docker run -d --name notification_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3007:3007 notification_service:latest
+            docker run -d --name attachment_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3008:3008 attachment_service:latest
+          fi
+
+          # Allow background services 5 seconds to bind ports
+          sleep 5
+
+      - name: Execute End-to-End Test Suite
+        run: npx jest tests/e2e/caseLifecycle.e2e.test.js --runInBand --verbose
+
+      - name: Dump Container Logs on Failure
+        if: failure()
+        run: |
+          echo "=== Postgres Logs ==="
+          docker logs marad_ccb_postgres --tail 100
+          for svc in event_store_service user_service submitter_service investigation_service voter_service decision_maker_service notification_service attachment_service; do
+            echo "=== Logs for $svc ==="
+            docker logs "$svc" --tail 100 || true
+          done
