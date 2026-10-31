@@ -61,7 +61,7 @@ jobs:
       - name: Build and Cache Image
         uses: docker/build-push-action@v5
         with:
-          context: ./${{ matrix.service }}
+          context: ./services/${{ matrix.service }}
           push: false
           tags: ${{ matrix.service }}:latest
           outputs: type=docker,dest=/tmp/${{ matrix.service }}.tar
@@ -123,7 +123,6 @@ jobs:
             -p 5432:5432 \
             postgres:15-alpine
 
-          # Await PostgreSQL readiness
           until docker exec marad_ccb_postgres pg_isready -U postgres -d marad_ccb_db; do
             echo "Waiting for postgres initialization..."
             sleep 2
@@ -133,11 +132,9 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@marad_ccb_postgres:5432/marad_ccb_db
         run: |
-          # If docker-compose.yml exists, run via compose:
           if [ -f "docker-compose.yml" ]; then
             docker compose up -d
           else
-            # Manual fallback invocation on shared network
             docker run -d --name event_store_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3001:3001 event_store_service:latest
             docker run -d --name user_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3002:3002 user_service:latest
             docker run -d --name submitter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3003:3003 submitter_service:latest
@@ -148,7 +145,6 @@ jobs:
             docker run -d --name attachment_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3008:3008 attachment_service:latest
           fi
 
-          # Allow background services 5 seconds to bind ports
           sleep 5
 
       - name: Execute End-to-End Test Suite
