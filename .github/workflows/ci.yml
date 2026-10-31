@@ -173,14 +173,14 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@marad_ccb_postgres:5432/marad_ccb_db
         run: |
-          docker run -d --name event_store_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3001:3001 event_store_service:latest
-          docker run -d --name user_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3002:3002 user_service:latest
-          docker run -d --name submitter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3003:3003 submitter_service:latest
-          docker run -d --name investigation_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3004:3004 investigation_service:latest
-          docker run -d --name voter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3005:3005 voter_service:latest
-          docker run -d --name decision_maker_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3006:3006 decision_maker_service:latest
-          docker run -d --name notification_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3007:3007 notification_service:latest
-          docker run -d --name attachment_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -p 3008:3008 attachment_service:latest
+          docker run -d --name user_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -e PORT=8000 -p 8000:8000 user_service:latest
+          docker run -d --name submitter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -e PORT=8001 -p 8001:8001 submitter_service:latest
+          docker run -d --name voter_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -e PORT=8002 -p 8002:8002 voter_service:latest
+          docker run -d --name decision_maker_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -e PORT=8003 -p 8003:8003 decision_maker_service:latest
+          docker run -d --name notification_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -e PORT=8004 -p 8004:8004 notification_service:latest
+          docker run -d --name investigation_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -e PORT=8005 -p 8005:8005 investigation_service:latest
+          docker run -d --name attachment_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -e PORT=8006 -p 8006:8006 attachment_service:latest
+          docker run -d --name event_store_service --network marad_ccb_network -e DATABASE_URL=$DATABASE_URL -e PORT=8007 -p 8007:8007 event_store_service:latest
 
           sleep 5
 
