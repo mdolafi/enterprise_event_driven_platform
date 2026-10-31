@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
   # ---------------------------------------------------------------------------
   # Phase 1: Lint & Code Style Checks
@@ -61,7 +65,8 @@ jobs:
       - name: Build and Cache Image
         uses: docker/build-push-action@v5
         with:
-          context: ./services/${{ matrix.service }}
+          context: .
+          file: ./services/${{ matrix.service }}/Dockerfile
           push: false
           tags: ${{ matrix.service }}:latest
           outputs: type=docker,dest=/tmp/${{ matrix.service }}.tar
