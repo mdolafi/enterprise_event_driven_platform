@@ -65,7 +65,7 @@ jobs:
       - name: Build and Cache Image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./services/${{ matrix.service }}
           file: ./services/${{ matrix.service }}/Dockerfile
           push: false
           tags: ${{ matrix.service }}:latest
