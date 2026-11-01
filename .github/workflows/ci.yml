@@ -179,7 +179,7 @@ jobs:
             docker pull "ghcr.io/${{ env.IMAGE_OWNER }}/$SVC:latest"
 
             DB_HOST="dev-platform-${RDS_NAME}-db.${RDS_CLUSTER_SUFFIX}"
-            DB_URL="postgresql://${RDS_USER}:${RDS_PASSWORD}@${DB_HOST}:${RDS_PORT}/postgres?sslmode=require"
+            DB_URL="postgresql://${RDS_USER}:${RDS_PASSWORD}@${DB_HOST}:${RDS_PORT}/postgres?sslmode=no-verify"
 
             echo "=== Launching $SVC on port $PORT ==="
             docker run -d \
