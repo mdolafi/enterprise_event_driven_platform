@@ -120,11 +120,24 @@ jobs:
   e2e-test:
     name: E2E Integration Suite
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [lint, build-services]
 
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Test Dependencies
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          elif [ -f "package.json" ]; then
+            npm install
+          fi
 
       - name: Normalize Repository Owner to Lowercase
         run: |
@@ -165,7 +178,6 @@ jobs:
             echo "=== Pulling $SVC from GHCR ==="
             docker pull "ghcr.io/${{ env.IMAGE_OWNER }}/$SVC:latest"
 
-            # Builds: dev-platform-<rds_name>-db.<RDS_CLUSTER_SUFFIX>
             DB_HOST="dev-platform-${RDS_NAME}-db.${RDS_CLUSTER_SUFFIX}"
             DB_URL="postgresql://${RDS_USER}:${RDS_PASSWORD}@${DB_HOST}:${RDS_PORT}/postgres?sslmode=require"
 
@@ -185,3 +197,11 @@ jobs:
       - name: Run 7-Stage E2E Integration Suite
         run: |
           npm test
+
+      - name: Dump Container Logs on Failure
+        if: always()
+        run: |
+          for svc in user_service submitter_service voter_service decision_maker_service notification_service investigation_service attachment_service event_store_service; do
+            echo "=== Logs for $svc ==="
+            docker logs "$svc" --tail 100 || true
+          done
