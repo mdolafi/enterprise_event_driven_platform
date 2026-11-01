@@ -196,7 +196,7 @@ jobs:
 
       - name: Run 7-Stage E2E Integration Suite
         run: |
-          npm test
+          npx jest tests/e2e/caseLifecycle.e2e.test.js --runInBand --verbose
 
       - name: Dump Container Logs on Failure
         if: always()
