@@ -139,6 +139,45 @@ jobs:
             npm install
           fi
 
+       # =======================================================================
+      # PLACE OPTION 1 HERE (Directly before launching the microservices)
+      # =======================================================================
+      - name: Install PostgreSQL Client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Seed Database Schema across RDS Instances
+        env:
+          RDS_USER: ${{ secrets.RDS_USER }}
+          RDS_PASSWORD: ${{ secrets.RDS_PASSWORD }}
+          RDS_CLUSTER_SUFFIX: ${{ secrets.RDS_CLUSTER_SUFFIX }}
+          RDS_PORT: ${{ secrets.RDS_PORT || '5432' }}
+        run: |
+          RDS_NAMES=(
+            "user"
+            "submitter"
+            "voter"
+            "decision"
+            "notification"
+            "investigation"
+            "attachment"
+            "event-store"
+          )
+
+          CREATE_ROLE_SQL="DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'ccb_admin') THEN CREATE ROLE ccb_admin WITH CREATEDB CREATEROLE LOGIN PASSWORD 'ccb_admin'; END IF; END \$\$;"
+          GRANT_ROLE_SQL="GRANT ccb_admin TO \"${RDS_USER}\";"
+
+          for RDS_NAME in "${RDS_NAMES[@]}"; do
+            DB_HOST="dev-platform-${RDS_NAME}-db.${RDS_CLUSTER_SUFFIX}"
+            DB_URI="postgresql://${RDS_USER}:${RDS_PASSWORD}@${DB_HOST}:${RDS_PORT}/postgres?sslmode=require"
+
+            echo "=== Seeding schema to $DB_HOST ==="
+            psql "$DB_URI" -c "$CREATE_ROLE_SQL"
+            psql "$DB_URI" -c "$GRANT_ROLE_SQL"
+            psql "$DB_URI" -f init_schema.sql
+          done
+
       - name: Normalize Repository Owner to Lowercase
         run: |
           echo "IMAGE_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
